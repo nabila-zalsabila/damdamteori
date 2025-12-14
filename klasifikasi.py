@@ -140,9 +140,10 @@ st_slope = st.selectbox(
 st_slope_value = ["Naik", "Datar", "Turun"].index(st_slope)
 
 # =========================
-# PREDIKSI
+# PREDIKSI RISIKO (SVM)
 # =========================
 if st.button("Prediksi Risiko"):
+
     input_data = pd.DataFrame([[
         age, sex_value, chest_pain_value, resting_bp,
         cholesterol, fasting_bs_value, resting_ecg_value,
@@ -150,20 +151,24 @@ if st.button("Prediksi Risiko"):
     ]], columns=X.columns)
 
     input_scaled = scaler.transform(input_data)
+
     prediction = model.predict(input_scaled)[0]
 
-if prediction == 1:
-    st.warning(
-        "⚠️ **Hasil Prediksi SVM**\n\n"
-        "Berdasarkan pengolahan data menggunakan model Support Vector Machine (SVM), "
-        "data yang dimasukkan memiliki **pola yang menyerupai pasien dengan risiko penyakit jantung**.\n\n"
-        "⚠️ Hasil ini bersifat **edukatif** dan **tidak menggantikan diagnosis medis**."
-    )
-else:
-    st.success(
-        "✅ **Hasil Prediksi SVM**\n\n"
-        "Berdasarkan model SVM, data yang dimasukkan **tidak menunjukkan pola risiko penyakit jantung**."
-    )
+    if prediction == 1:
+        st.warning(
+            "⚠️ **Hasil Prediksi SVM**\n\n"
+            "Berdasarkan model Support Vector Machine (SVM), "
+            "data yang dimasukkan memiliki **pola yang menyerupai pasien "
+            "dengan risiko penyakit jantung**.\n\n"
+            "Hasil ini bersifat edukatif dan tidak menggantikan diagnosis medis."
+        )
+    else:
+        st.success(
+            "✅ **Hasil Prediksi SVM**\n\n"
+            "Berdasarkan model SVM, data yang dimasukkan "
+            "**tidak menunjukkan pola risiko penyakit jantung**."
+        )
+
 
 # =========================
 # ===== BAGIAN PENGUJIAN =====
