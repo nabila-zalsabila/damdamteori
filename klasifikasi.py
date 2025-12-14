@@ -1,131 +1,101 @@
 import streamlit as st
 import pandas as pd
-import re
 
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
 # =========================
 # KONFIGURASI HALAMAN
 # =========================
 st.set_page_config(
-    page_title="Deteksi Berita Hoaks",
+    page_title="Prediksi Penyakit Jantung",
     layout="centered"
 )
 
-st.title("📰 Aplikasi Klasifikasi Berita Hoaks")
-st.write("Deteksi berita **Hoaks** atau **Fakta** menggunakan NLP")
+st.title("❤️ Aplikasi Prediksi Penyakit Jantung")
+st.write("Menggunakan Machine Learning (Logistic Regression)")
 
 # =========================
-# LOAD DATASET
+# LOAD DATA
 # =========================
 @st.cache_data
 def load_data():
-    # Dataset hoaks (Kominfo / Komdigi)
-    hoaks = pd.read_csv("komdigi_hoaks.csv")
+    return pd.read_csv("heart.csv")
 
-    # Gabungkan kolom teks yang benar
-    hoaks["text"] = (
-        hoaks["title"].fillna("") + " " +
-        hoaks["body_text"].fillna("")
-    )
+df = load_data()
 
-    hoaks["label"] = 1  # 1 = Hoaks
-
-    # Dataset fakta (contoh, sebaiknya diganti dataset asli)
-    fakta = pd.DataFrame({
-        "text": [
-            "Presiden meresmikan pembangunan jalan tol baru di Jawa Tengah",
-            "Pemerintah mengumumkan jadwal libur nasional tahun 2025",
-            "Kementerian Kesehatan merilis data terbaru kasus demam berdarah",
-            "Bank Indonesia mempertahankan suku bunga acuan"
-        ],
-        "label": [0, 0, 0, 0]  # 0 = Fakta
-    })
-
-    # Gabungkan hoaks + fakta
-    data = pd.concat(
-        [hoaks[["text", "label"]], fakta],
-        ignore_index=True
-    )
-
-    return data
-
-data = load_data()
-
-st.write("📊 Jumlah Data:", data.shape[0])
-st.write("📌 Distribusi Label:")
-st.write(data["label"].value_counts())
+st.subheader("📊 Dataset")
+st.dataframe(df.head())
 
 # =========================
-# PREPROCESSING TEKS
+# PREPROCESSING
 # =========================
-def clean_text(text):
-    text = str(text).lower()
-    text = re.sub(r"http\S+", "", text)      # hapus URL
-    text = re.sub(r"[^a-zA-Z\s]", "", text)  # hapus simbol
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+X = df.drop("target", axis=1)
+y = df["target"]
 
-data["text"] = data["text"].apply(clean_text)
-
-# =========================
-# TF-IDF VECTORIZATION
-# =========================
-vectorizer = TfidfVectorizer(
-    stop_words="english",
-    max_df=0.9,
-    min_df=2
-)
-
-X = vectorizer.fit_transform(data["text"])
-y = data["label"]
-
-# =========================
-# SPLIT DATA
-# =========================
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y
-)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
 # =========================
 # TRAIN MODEL
 # =========================
-model = MultinomialNB()
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.2, random_state=42
+)
+
+model = LogisticRegression(max_iter=1000)
 model.fit(X_train, y_train)
 
-# =========================
-# EVALUASI MODEL
-# =========================
 y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 
 st.success(f"🎯 Akurasi Model: **{accuracy * 100:.2f}%**")
 
 # =========================
-# INPUT USER
+# FORM INPUT USER
 # =========================
-st.subheader("🔍 Uji Berita")
+st.subheader("📝 Masukkan Data Pasien")
 
-user_input = st.text_area(
-    "Masukkan teks berita yang ingin diuji:",
-    height=200
-)
+with st.form("prediction_form"):
+    col1, col2 = st.columns(2)
 
-if st.button("Prediksi"):
-    if user_input.strip() == "":
-        st.warning("⚠️ Silakan masukkan teks berita terlebih dahulu.")
+    with col1:
+        age = st.number_input("Umur", 20, 100, 50)
+        sex = st.selectbox("Jenis Kelamin", [0, 1], format_func=lambda x: "Perempuan" if x == 0 else "Laki-laki")
+        cp = st.selectbox("Tipe Nyeri Dada (cp)", [0, 1, 2, 3])
+        trestbps = st.number_input("Tekanan Darah Istirahat", 80, 200, 120)
+        chol = st.number_input("Kolesterol", 100, 600, 200)
+        fbs = st.selectbox("Gula Darah > 120 mg/dl", [0, 1])
+
+    with col2:
+        restecg = st.selectbox("Hasil EKG", [0, 1, 2])
+        thalach = st.number_input("Detak Jantung Maks", 60, 220, 150)
+        exang = st.selectbox("Nyeri Saat Olahraga", [0, 1])
+        oldpeak = st.number_input("Oldpeak", 0.0, 6.0, 1.0)
+        slope = st.selectbox("Slope", [0, 1, 2])
+        ca = st.selectbox("Jumlah Pembuluh (ca)", [0, 1, 2, 3, 4])
+        thal = st.selectbox("Thal", [0, 1, 2, 3])
+
+    submitted = st.form_submit_button("🔍 Prediksi")
+
+# =========================
+# PREDIKSI
+# =========================
+if submitted:
+    input_data = pd.DataFrame([[
+        age, sex, cp, trestbps, chol, fbs,
+        restecg, thalach, exang, oldpeak,
+        slope, ca, thal
+    ]], columns=X.columns)
+
+    input_scaled = scaler.transform(input_data)
+    prediction = model.predict(input_scaled)[0]
+
+    st.subheader("📌 Hasil Prediksi")
+
+    if prediction == 1:
+        st.error("⚠️ Berisiko Mengalami Penyakit Jantung")
     else:
-        clean_input = clean_text(user_input)
-        vector_input = vectorizer.transform([clean_input])
-        prediction = model.predict(vector_input)[0]
-
-        if prediction == 1:
-            st.error("❌ Berita ini terdeteksi sebagai **HOAKS**")
-        else:
-            st.success("✅ Berita ini terdeteksi sebagai **FAKTA**")
+        st.success("✅ Tidak Berisiko Penyakit Jantung")
