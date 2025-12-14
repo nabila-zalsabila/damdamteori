@@ -9,6 +9,7 @@ import joblib
 svm_model = joblib.load("svm_model.pkl")
 nb_model = joblib.load("nb_model.pkl")
 scaler = joblib.load("scaler.pkl")
+feature_columns = joblib.load("feature_columns.pkl")
 
 # =========================
 # KONFIGURASI HALAMAN
@@ -43,27 +44,35 @@ chol = st.number_input("Kolesterol", 100, 600, 200)
 thalach = st.number_input("Detak Jantung Maksimum", 60, 220, 150)
 
 # Encoding manual (HARUS SAMA dengan training)
-sex_m = 1 if sex_m == "Laki-laki" else 0
+sex = st.selectbox("Jenis Kelamin", ("Perempuan", "Laki-laki"))
 
 # =========================
 # BENTUK INPUT ARRAY
 # URUTAN HARUS SAMA DENGAN X TRAINING
 # =========================
-input_data = np.array([[
-    age,
-    sex_m,
-    cp,
-    trestbps,
-    chol,
-    thalach
-]])
+# Buat dataframe kosong sesuai fitur training
+input_df = pd.DataFrame(
+    np.zeros((1, len(feature_columns))),
+    columns=feature_columns
+)
+
+input_df["age"] = age
+input_df["trestbps"] = trestbps
+input_df["chol"] = chol
+input_df["thalach"] = thalach
+
+# Encoding gender (contoh kolom: Sex_M)
+if "Sex_M" in input_df.columns:
+    input_df["Sex_M"] = 1 if sex_m == "Laki-laki" else 0
+
 
 # =========================
 # TOMBOL PREDIKSI
 # =========================
 if st.button("🔍 Prediksi Risiko"):
     # Scaling
-    input_scaled = scaler.transform(input_data)
+    input_scaled = scaler.transform(input_df)
+
 
     # Pilih model
     if model_choice == "Support Vector Machine (SVM)":
