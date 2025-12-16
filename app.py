@@ -2,6 +2,9 @@ import streamlit as st
 import numpy as np
 import joblib
 
+# ===============================
+# KONFIGURASI HALAMAN
+# ===============================
 st.set_page_config(
     page_title="Occupancy Detection",
     page_icon="🏢",
@@ -13,23 +16,37 @@ st.write("Prediksi keberadaan orang di dalam ruangan menggunakan Machine Learnin
 
 st.divider()
 
+# ===============================
+# PILIH MODEL
+# ===============================
 st.subheader("🔍 Pilih Model")
 
 model_option = st.selectbox(
     "Pilih algoritma yang digunakan:",
-    ("Naive Bayes", "Random Forest")
+    ("Naive Bayes", "Random Forest (Akurasi ±90%)")
 )
 
-# Load model
-if model_option == "Naive Bayes":
-    model = joblib.load("naive_bayes_model.joblib")
-else:
-    model = joblib.load("random_forest_model.joblib")
+# ===============================
+# LOAD MODEL
+# ===============================
+@st.cache_resource
+def load_model(model_name):
+    return joblib.load(model_name)
 
-st.success(f"Model **{model_option}** berhasil dimuat")
+if model_option == "Naive Bayes":
+    model = load_model("naive_bayes_model.joblib")
+    model_desc = "Naive Bayes"
+else:
+    model = load_model("random_forest_90_model.joblib")
+    model_desc = "Random Forest (dibatasi, ±90%)"
+
+st.success(f"Model **{model_desc}** berhasil dimuat")
 
 st.divider()
 
+# ===============================
+# INPUT DATA SENSOR
+# ===============================
 st.subheader("📊 Input Data Sensor")
 
 col1, col2 = st.columns(2)
@@ -58,18 +75,24 @@ with col1:
 with col2:
     co2 = st.number_input(
         "🧪 CO₂ (ppm)",
-        min_value=0.0,
+        min_value=300.0,
+        max_value=2000.0,
         value=600.0
     )
 
     humidity_ratio = st.number_input(
         "📈 Humidity Ratio",
-        min_value=0.0,
-        value=0.004
+        min_value=0.001,
+        max_value=0.02,
+        value=0.004,
+        format="%.4f"
     )
 
 st.divider()
 
+# ===============================
+# PREDIKSI
+# ===============================
 if st.button("🔮 Prediksi Occupancy"):
     input_data = np.array([
         temperature,
@@ -88,4 +111,4 @@ if st.button("🔮 Prediksi Occupancy"):
     else:
         st.success("🏠 **RUANGAN TERDETEKSI KOSONG**")
 
-    st.caption(f"Model yang digunakan: {model_option}")
+    st.caption(f"Model yang digunakan: {model_desc}")
