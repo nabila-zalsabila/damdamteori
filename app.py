@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import joblib
+import os
 
 # ===============================
 # KONFIGURASI HALAMAN
@@ -17,30 +18,36 @@ st.write("Prediksi keberadaan orang di dalam ruangan menggunakan Machine Learnin
 st.divider()
 
 # ===============================
+# FUNGSI LOAD MODEL (AMAN)
+# ===============================
+@st.cache_resource
+def load_model(model_path):
+    if not os.path.exists(model_path):
+        st.error(f"❌ File model tidak ditemukan: `{model_path}`")
+        st.stop()
+    return joblib.load(model_path)
+
+# ===============================
 # PILIH MODEL
 # ===============================
 st.subheader("🔍 Pilih Model")
 
 model_option = st.selectbox(
     "Pilih algoritma yang digunakan:",
-    ("Naive Bayes", "Random Forest (Akurasi ±90%)")
+    (
+        "Naive Bayes",
+        "Random Forest (Akurasi ±90%)"
+    )
 )
 
-# ===============================
-# LOAD MODEL
-# ===============================
-@st.cache_resource
-def load_model(model_name):
-    return joblib.load(model_name)
-
 if model_option == "Naive Bayes":
-    model = load_model("naive_bayes_model.joblib")
-    model_desc = "Naive Bayes"
+    model = load_model("models/naive_bayes_model.joblib")
+    model_name = "Naive Bayes"
 else:
-    model = load_model("random_forest_90_model.joblib")
-    model_desc = "Random Forest (dibatasi, ±90%)"
+    model = load_model("models/random_forest_90_model.joblib")
+    model_name = "Random Forest (dibatasi, ±90%)"
 
-st.success(f"Model **{model_desc}** berhasil dimuat")
+st.success(f"Model **{model_name}** berhasil dimuat")
 
 st.divider()
 
@@ -111,4 +118,4 @@ if st.button("🔮 Prediksi Occupancy"):
     else:
         st.success("🏠 **RUANGAN TERDETEKSI KOSONG**")
 
-    st.caption(f"Model yang digunakan: {model_desc}")
+    st.caption(f"Model yang digunakan: {model_name}")
